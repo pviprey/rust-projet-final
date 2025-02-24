@@ -1,3 +1,5 @@
+mod maps;
+
 fn main() {
-    println!("Hello, world!");
+    maps::map::generate_map();
 }

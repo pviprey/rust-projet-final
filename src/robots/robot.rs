@@ -5,6 +5,7 @@ pub struct Robot {
     pub y: usize,
     map_width: usize,
     map_height: usize,
+    energy: i32,
 }
 
 impl Robot {
@@ -14,10 +15,17 @@ impl Robot {
             y: map_height / 2,
             map_width,
             map_height,
+            energy: 100
         }
     }
     
     pub fn move_random(&mut self) {
+
+        if self.energy <= 0 {
+            return;
+        } else {
+            self.energy -= 1;
+        }
         let mut rng = rand::rng();
         // 0: haut, 1: droite, 2: bas, 3: gauche
         match rng.random_range(0..4) {

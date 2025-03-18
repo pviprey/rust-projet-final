@@ -4,16 +4,23 @@ use std::time::Duration;
 use crate::robots::robot::Robot;
 
 // base gen map
+// "F" = Iron
+// "T" = Research
+// "#" = Montain
+// "." = Plain
+
 pub fn generate_map() {
     let seed = 0;
     let perlin = Perlin::new(seed);
     for x in 0..20 {
         for y in 0..100 {
             let noise = perlin.get([x as f64 / 10.0, y as f64 / 10.0, 0.0]);
-            if noise < -0.3 {
+            if noise < -0.4 {
                 print!("#");
-            } else if noise < -0.1 {
+            } else if noise < -0.35 {
                 print!("F");
+            } else if noise < -0.3 {
+                print!("T");
             } else {
                 print!(".");
             }
@@ -30,6 +37,7 @@ pub fn generate_map_with_robot() {
     let mut robot = Robot::new(map_width, map_height);
     
     let mut iron_collected = vec![vec![false; map_height]; map_width];
+    let mut research_collected = vec![vec![false; map_height]; map_width];
     
     loop {
         print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
@@ -38,10 +46,14 @@ pub fn generate_map_with_robot() {
         if noise_at_robot < -0.1 && noise_at_robot >= -0.3 && !iron_collected[robot.x][robot.y] {
             robot.collect_iron();
             iron_collected[robot.x][robot.y] = true;
+        } else if noise_at_robot < -0.3 && !research_collected[robot.x][robot.y] {
+            robot.collect_research();
         }
         
         // status
         println!("Iron Collected: {}", robot.iron_collected);
+        println!("Research Collected: {}", robot.research_collected);
+        println!("Energy: {}", robot.energy);
         println!();
         
         // map
@@ -51,14 +63,16 @@ pub fn generate_map_with_robot() {
                     print!("R");
                 } else {
                     let noise = perlin.get([x as f64 / 10.0, y as f64 / 10.0, 0.0]);
-                    if noise < -0.3 {
+                    if noise < -0.4 {
                         print!("#");
-                    } else if noise < -0.1 {
+                    } else if noise < -0.35 {
                         if !iron_collected[x][y] {
                             print!("F");
                         } else {
                             print!(".");
                         }
+                    } else if noise < -0.3 {
+                        print!("T");
                     } else {
                         print!(".");
                     }

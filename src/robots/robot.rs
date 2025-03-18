@@ -5,8 +5,9 @@ pub struct Robot {
     pub y: usize,
     map_width: usize,
     map_height: usize,
-    energy: i32,
+    pub energy: i32,
     pub iron_collected: i32,
+    pub research_collected: i32,
 }
 
 impl Robot {
@@ -18,11 +19,16 @@ impl Robot {
             map_height,
             energy: 100,
             iron_collected: 0,
+            research_collected: 0,
         }
     }
     
     pub fn collect_iron(&mut self) {
         self.iron_collected += 1;
+    }
+
+    pub fn collect_research(&mut self) {
+        self.research_collected += 1;
     }
     
     pub fn move_random(&mut self) {

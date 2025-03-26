@@ -9,24 +9,43 @@ use crate::robots::robot::Robot;
 // "#" = Montain
 // "." = Plain
 
+pub enum Terrain {
+    Iron { collected: bool},
+    Research,
+    Mountain,
+    Plain
+}
+pub struct Map {
+    seed: i32,
+    width: i32,
+    height: i32,
+    blueprint: Vec<Vec<Terrain>>
+}
+
 pub fn generate_map() {
-    let seed = 0;
-    let perlin = Perlin::new(seed);
-    for x in 0..20 {
-        for y in 0..100 {
+    let map: Map;
+    map.seed = 0;
+    map.width = 20;
+    map.height = 100;
+
+    for x in 0..map.width {
+        let mut row: Vec<Terrain> = vec![];
+        for y in 0..map.height {
             let noise = perlin.get([x as f64 / 10.0, y as f64 / 10.0, 0.0]);
             if noise < -0.4 {
-                print!("#");
+                row.push(Terrain::Mountain);
             } else if noise < -0.35 {
-                print!("F");
+                row.push(Terrain::Iron { collected: false });
             } else if noise < -0.3 {
-                print!("T");
+                row.push(Terrain::Research);
             } else {
-                print!(".");
+                row.push(Terrain::Plain);
             }
+            map.blueprint.push(row);
         }
-        println!();
     }
+
+    return map;
 }
 
 pub fn generate_map_with_robot() {

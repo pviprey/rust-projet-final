@@ -1,17 +1,18 @@
+use pathfinding::prelude::astar;
 use rand::Rng;
 
 pub struct Robot {
-    pub x: usize,
-    pub y: usize,
-    map_width: usize,
-    map_height: usize,
+    pub x: i32,
+    pub y: i32,
+    map_width: i32,
+    map_height: i32,
     pub energy: i32,
     pub iron_collected: i32,
     pub research_collected: i32,
 }
 
 impl Robot {
-    pub fn new(map_width: usize, map_height: usize) -> Self {
+    pub fn new(map_width: i32, map_height: i32) -> Self {
         Self {
             x: map_width / 2,
             y: map_height / 2,
@@ -46,5 +47,23 @@ impl Robot {
         3 if self.x > 0 => self.x -= 1,
             _ => {},
         }
+    }
+
+    pub fn moving(&mut self, deplacement: Option<(Vec<(i32, i32)>, u32)>){
+        
+    }
+
+    pub fn path_finding(&mut self, dest_x: i32, dest_y: i32) -> Option<(Vec<(i32, i32)>, u32)> {
+        let start = (self.x, self.y);
+        let goal = (dest_x, dest_y);
+        
+        astar(&start, |&(x, y)| {
+            let deltas: [(i32, i32); 4] = [(1, 0), (-1, 0), (0, 1), (0, -1)];
+
+            deltas.iter().map(|&(dx, dy)| ((x + dx, y + dy), 1)).collect::<Vec<_>>()
+            },
+            |&(x,y )| goal.0.abs_diff(x) + goal.1.abs_diff(y),
+            |&p| p == goal,
+        )
     }
 }

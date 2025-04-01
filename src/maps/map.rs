@@ -1,52 +1,83 @@
 use noise::{NoiseFn, Perlin};
-use std::thread;
-use std::time::Duration;
-use crate::robots::robot::Robot;
+use ratatui::text::Span;
+use ratatui::style::{Style, Color};
 
-// base gen map
-// "F" = Iron
-// "T" = Research
-// "#" = Montain
-// "." = Plain
-
+#[derive(Clone)]
 pub enum Terrain {
-    Iron { collected: bool},
+    Iron { collected: bool },
     Research,
     Mountain,
-    Plain
+    Plain,
 }
+
+#[derive(Clone)]
 pub struct Map {
-    seed: i32,
-    width: i32,
-    height: i32,
-    blueprint: Vec<Vec<Terrain>>
+    pub seed: u32,
+    pub width: i32,
+    pub height: i32,
+    pub blueprint: Vec<Vec<Terrain>>,
 }
 
-pub fn generate_map() {
-    let map: Map;
-    map.seed = 0;
-    map.width = 20;
-    map.height = 100;
+impl Map {
+    pub fn render(&self) -> Vec<Vec<Span>> {
+        let mut grid = vec![vec![Span::raw(" "); self.width as usize]; self.height as usize];
 
-    for x in 0..map.width {
-        let mut row: Vec<Terrain> = vec![];
-        for y in 0..map.height {
-            let noise = perlin.get([x as f64 / 10.0, y as f64 / 10.0, 0.0]);
-            if noise < -0.4 {
-                row.push(Terrain::Mountain);
-            } else if noise < -0.35 {
-                row.push(Terrain::Iron { collected: false });
-            } else if noise < -0.3 {
-                row.push(Terrain::Research);
-            } else {
-                row.push(Terrain::Plain);
+        for y in 0..self.height {
+            for x in 0..self.width {
+                let span = match &self.blueprint[x as usize][y as usize] {
+                    Terrain::Iron { collected } => {
+                        let ch = if *collected { "." } else { "F" };
+                        Span::styled(ch, Style::default().fg(Color::Yellow))
+                    }
+                    Terrain::Research => Span::styled("T", Style::default().fg(Color::Cyan)),
+                    Terrain::Mountain => Span::styled("#", Style::default().fg(Color::DarkGray)),
+                    Terrain::Plain => Span::raw("."),
+                };
+                grid[y as usize][x as usize] = span;
             }
-            map.blueprint.push(row);
         }
+
+        grid
+    }
+}
+
+pub fn generate_map(seed: u32, width: i32, height: i32) -> Map {
+    let perlin = Perlin::new(seed);
+    let mut blueprint = vec![];
+
+    for x in 0..width {
+        let mut row = vec![];
+        for y in 0..height {
+            let noise = perlin.get([x as f64 / 10.0, y as f64 / 10.0, 0.0]);
+            let terrain = if noise < -0.4 {
+                Terrain::Mountain
+            } else if noise < -0.35 {
+                Terrain::Iron { collected: false }
+            } else if noise < -0.3 {
+                Terrain::Research
+            } else {
+                Terrain::Plain
+            };
+            row.push(terrain);
+        }
+        blueprint.push(row);
     }
 
-    return map;
+    Map {
+        seed,
+        width,
+        height,
+        blueprint,
+    }
 }
+
+
+
+
+
+
+
+/*
 
 pub fn generate_map_with_robot() {
     let seed = 0;
@@ -104,3 +135,4 @@ pub fn generate_map_with_robot() {
         thread::sleep(Duration::from_millis(200));
     }
 }
+    */

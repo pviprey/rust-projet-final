@@ -1,5 +1,5 @@
 use pathfinding::prelude::astar;
-use crate::maps::map::{Map, Terrain};
+use crate::maps::map::{Map, Resource, Biome};
 use ratatui::style::{Style, Color, Modifier};
 use ratatui::text::Span;
 
@@ -33,13 +33,14 @@ impl Robot {
 
     pub fn collect_iron(&mut self) {
         self.iron_collected += 1;
+        self.known_map.blueprint[self.x as usize][self.y as usize] = Resource::None;
     }
 
     pub fn collect_research(&mut self) {
         self.research_collected += 1;
+        self.known_map.blueprint[self.x as usize][self.y as usize] = Resource::None;
     }
-
-    // The moving method now moves only one tile from the given path.
+    
     pub fn moving(&mut self, deplacement: Option<(Vec<(i32, i32)>, u32)>) {
         if let Some((mut path, _)) = deplacement {
             if !path.is_empty() {
@@ -52,42 +53,25 @@ impl Robot {
         }
     }
 
-    // Updated update: it first mines iron if on an unmined iron tile.
-    // Then, if a stored path exists, it takes ownership of it (using .take()) and follows one step.
-    // Otherwise, it computes a new path (avoiding mountains) to the nearest unmined iron tile,
-    // stores it, and moves one step.
     pub fn update(&mut self, map: &mut Map) {
         if self.energy <= 0 {
             return;
         }
     
-        let x = self.x as usize;
-        let y = self.y as usize;
+        let x = self.x as i32;
+        let y = self.y as i32;
     
-        // 1. Mine iron if on an unmined iron tile.
-        if let Terrain::Iron { collected } = &mut map.blueprint[x][y] {
-            if !*collected {
-                *collected = true;
-                self.collect_iron();
-                self.path = None; // reset stored path
-                return;
-            }
-        }
-    
-        // 2. If a stored path exists, take it and move one step.
         if let Some(mut stored_path) = self.path.take() {
             if !stored_path.is_empty() {
-                // We now own the path, so we can call moving() without holding self.path mutably.
                 self.moving(Some((stored_path.clone(), 0)));
                 return;
             }
         }
     
-        // 3. Otherwise, compute a new path to the nearest unmined iron tile.
         let mut closest: Option<(Vec<(i32, i32)>, u32)> = None;
         for (ix, row) in map.blueprint.iter().enumerate() {
             for (iy, tile) in row.iter().enumerate() {
-                if let Terrain::Iron { collected: false } = tile {
+                if let Resource::Iron = tile {
                     if let Some(p) = self.path_finding(ix as i32, iy as i32, map) {
                         if closest.is_none() || p.1 < closest.as_ref().unwrap().1 {
                             closest = Some(p);
@@ -97,7 +81,6 @@ impl Robot {
             }
         }
     
-        // 4. If a new path is found, store it and move one step.
         if let Some((mut path, cost)) = closest {
             if !path.is_empty() && path[0] == (self.x, self.y) {
                 path.remove(0);
@@ -107,8 +90,6 @@ impl Robot {
         }
     }
         
-    // Pathfinding using A* that avoids mountain tiles.
-    // It iterates over the four cardinal neighbors, skipping those out-of-bounds or that are mountains.
     pub fn path_finding(&self, dest_x: i32, dest_y: i32, map: &Map) -> Option<(Vec<(i32, i32)>, u32)> {
         let start = (self.x, self.y);
         let goal = (dest_x, dest_y);
@@ -122,7 +103,7 @@ impl Robot {
                     if next.0 < 0 || next.1 < 0 || next.0 >= map.width || next.1 >= map.height {
                         continue;
                     }
-                    if let Terrain::Mountain = map.blueprint[next.0 as usize][next.1 as usize] {
+                    if let Biome::Mountain = map.blueprint[next.0 as usize][next.1 as usize] {
                         continue;
                     }
                     neighbors.push((next, 1));
@@ -134,7 +115,6 @@ impl Robot {
         )
     }
     
-    // Render the robot on the grid as a bold red "R".
     pub fn render(&self, grid: &mut Vec<Vec<Span>>) {
         let x = self.x as usize;
         let y = self.y as usize;

@@ -9,8 +9,7 @@ use ratatui::{
     Terminal,
     widgets::{Block, Borders, Paragraph},
     layout::{Layout, Constraint, Direction},
-    style::{Style, Color, Modifier},
-    text::{Line, Span},
+    text::Line,
 };
 
 use maps::map::{self, Map};
@@ -25,7 +24,7 @@ fn main() -> Result<(), io::Error> {
     const FPS: u64 = 30;
     const FRAME_DURATION: Duration = Duration::from_millis(1000 / FPS);
 
-    let map = map::generate_map(0, WIDTH, HEIGHT);
+    let mut map = map::generate_map(0, WIDTH, HEIGHT);
 
     let mut robots = vec![
         Robot::new(WIDTH, HEIGHT, &map),
@@ -51,7 +50,7 @@ fn main() -> Result<(), io::Error> {
         }
 
         for robot in robots.iter_mut() {
-            robot.update(&map);
+            robot.update(&mut map);
         }
 
         let mut grid = map.render();

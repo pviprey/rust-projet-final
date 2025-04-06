@@ -1,5 +1,5 @@
 use pathfinding::prelude::astar;
-use crate::maps::map::{Map, Resource, Biome};
+use crate::maps::map::{Map, Resource, Biome, TileInfo};
 use ratatui::style::{Style, Color, Modifier};
 use ratatui::text::Span;
 
@@ -33,14 +33,20 @@ impl Robot {
 
     pub fn collect_iron(&mut self) {
         self.iron_collected += 1;
-        self.known_map.blueprint[self.x as usize][self.y as usize] = Resource::None;
+        self.known_map.blueprint[self.x as usize][self.y as usize] = TileInfo {
+            biome: self.known_map.blueprint[self.x as usize][self.y as usize].biome,
+            resource: Resource::None,
+        };
     }
 
     pub fn collect_research(&mut self) {
         self.research_collected += 1;
-        self.known_map.blueprint[self.x as usize][self.y as usize] = Resource::None;
+        self.known_map.blueprint[self.x as usize][self.y as usize] = TileInfo {
+            biome: self.known_map.blueprint[self.x as usize][self.y as usize].biome,
+            resource: Resource::None,
+        };
     }
-    
+
     pub fn moving(&mut self, deplacement: Option<(Vec<(i32, i32)>, u32)>) {
         if let Some((mut path, _)) = deplacement {
             if !path.is_empty() {
@@ -58,8 +64,60 @@ impl Robot {
             return;
         }
     
-        let x = self.x as i32;
-        let y = self.y as i32;
+        if let Some(mut stored_path) = self.path.take() {
+            if !stored_path.is_empty() {
+                self.moving(Some((stored_path.clone(), 0)));
+                return;
+            }
+        }
+    
+        let mut closest: Option<(Vec<(i32, i32)>, u32)> = None;
+        for (ix, row) in map.blueprint.iter().enumerate() {
+            for (iy, tile) in row.iter().enumerate() {
+                if let Resource::Iron = tile.resource {
+                    if let Some(p) = self.path_finding(ix as i32, iy as i32, map) {
+                        if closest.is_none() || p.1 < closest.as_ref().unwrap().1 {
+                            closest = Some(p);
+                        }
+                    }
+                }
+            }
+        }
+    
+        if let Some((mut path, cost)) = closest {
+            if !path.is_empty() && path[0] == (self.x, self.y) {
+                path.remove(0);
+            }
+            self.path = Some(path.clone());
+            self.moving(Some((path, cost)));
+        }
+    }
+    
+    pub fn discover_current_location(&mut self, biome: Biome, resource: Resource) {
+        for dx in -2..=2 {
+            for dy in -2..=2 {
+                let new_x = (self.x as isize + dx)
+                    .clamp(0, self.map_width as isize - 1) as usize;
+                let new_y = (self.y as isize + dy)
+                    .clamp(0, self.map_height as isize - 1) as usize;
+                self.known_map.blueprint[new_x][new_y] = TileInfo { biome, resource };
+            }
+        }
+        self.known_map.blueprint[self.x as usize][self.y as usize] = TileInfo { biome, resource };
+    }
+    
+    pub fn get_tile_info(&self, x: usize, y: usize) -> Option<&TileInfo> {
+        if x < self.map_width as usize && y < self.map_height as usize {
+            Some(&self.known_map.blueprint[x][y])
+        } else {
+            None
+        }
+    }
+    
+    pub fn move_random(&mut self, map: &Map) {
+        if self.energy <= 0 {
+            return;
+        }
     
         if let Some(mut stored_path) = self.path.take() {
             if !stored_path.is_empty() {
@@ -71,7 +129,7 @@ impl Robot {
         let mut closest: Option<(Vec<(i32, i32)>, u32)> = None;
         for (ix, row) in map.blueprint.iter().enumerate() {
             for (iy, tile) in row.iter().enumerate() {
-                if let Resource::Iron = tile {
+                if let Resource::Iron = tile.resource {
                     if let Some(p) = self.path_finding(ix as i32, iy as i32, map) {
                         if closest.is_none() || p.1 < closest.as_ref().unwrap().1 {
                             closest = Some(p);
@@ -103,7 +161,7 @@ impl Robot {
                     if next.0 < 0 || next.1 < 0 || next.0 >= map.width || next.1 >= map.height {
                         continue;
                     }
-                    if let Biome::Mountain = map.blueprint[next.0 as usize][next.1 as usize] {
+                    if let Biome::Mountain = map.blueprint[next.0 as usize][next.1 as usize].biome {
                         continue;
                     }
                     neighbors.push((next, 1));

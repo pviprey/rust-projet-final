@@ -63,14 +63,14 @@ impl Robot {
         if self.energy <= 0 {
             return;
         }
-    
+
         if let Some(mut stored_path) = self.path.take() {
             if !stored_path.is_empty() {
                 self.moving(Some((stored_path.clone(), 0)));
                 return;
             }
         }
-    
+
         let mut closest: Option<(Vec<(i32, i32)>, u32)> = None;
         for (ix, row) in map.blueprint.iter().enumerate() {
             for (iy, tile) in row.iter().enumerate() {
@@ -83,7 +83,7 @@ impl Robot {
                 }
             }
         }
-    
+
         if let Some((mut path, cost)) = closest {
             if !path.is_empty() && path[0] == (self.x, self.y) {
                 path.remove(0);
@@ -92,7 +92,7 @@ impl Robot {
             self.moving(Some((path, cost)));
         }
     }
-    
+
     pub fn discover_current_location(&mut self, biome: Biome, resource: Resource) {
         for dx in -2..=2 {
             for dy in -2..=2 {
@@ -105,7 +105,7 @@ impl Robot {
         }
         self.known_map.blueprint[self.x as usize][self.y as usize] = TileInfo { biome, resource };
     }
-    
+
     pub fn get_tile_info(&self, x: usize, y: usize) -> Option<&TileInfo> {
         if x < self.map_width as usize && y < self.map_height as usize {
             Some(&self.known_map.blueprint[x][y])
@@ -113,19 +113,19 @@ impl Robot {
             None
         }
     }
-    
+
     pub fn move_random(&mut self, map: &Map) {
         if self.energy <= 0 {
             return;
         }
-    
+
         if let Some(mut stored_path) = self.path.take() {
             if !stored_path.is_empty() {
                 self.moving(Some((stored_path.clone(), 0)));
                 return;
             }
         }
-    
+
         let mut closest: Option<(Vec<(i32, i32)>, u32)> = None;
         for (ix, row) in map.blueprint.iter().enumerate() {
             for (iy, tile) in row.iter().enumerate() {
@@ -138,7 +138,7 @@ impl Robot {
                 }
             }
         }
-    
+
         if let Some((mut path, cost)) = closest {
             if !path.is_empty() && path[0] == (self.x, self.y) {
                 path.remove(0);
@@ -147,7 +147,7 @@ impl Robot {
             self.moving(Some((path, cost)));
         }
     }
-        
+    
     pub fn path_finding(&self, dest_x: i32, dest_y: i32, map: &Map) -> Option<(Vec<(i32, i32)>, u32)> {
         let start = (self.x, self.y);
         let goal = (dest_x, dest_y);
@@ -172,7 +172,7 @@ impl Robot {
             |&p| p == goal,
         )
     }
-    
+
     pub fn render(&self, grid: &mut Vec<Vec<Span>>) {
         let x = self.x as usize;
         let y = self.y as usize;
@@ -180,7 +180,7 @@ impl Robot {
             "R",
             Style::default()
                 .fg(Color::Red)
-                .add_modifier(Modifier::BOLD),
+                .add_modifier(Modifier::BOLD)
         );
     }
 }

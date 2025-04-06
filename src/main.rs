@@ -12,13 +12,16 @@ use ratatui::{
     text::Line,
 };
 use noise::{NoiseFn, Perlin};
-use maps::map::{self, Map, get_biome_from_noise, get_resource_from_noise, Biome, Resource};
+use maps::map::{self, Map, get_biome_from_noise, get_resource_from_biome, Biome, Resource};
 use robots::robot::{self, Robot};
+use base::base::Base;
 
 mod maps;
 mod robots;
+mod base;
 
 fn main() -> Result<(), io::Error> {
+    // Configuration générale
     const WIDTH: i32 = 150;
     const HEIGHT: i32 = 40;
     const FPS: u64 = 30;
@@ -26,12 +29,12 @@ fn main() -> Result<(), io::Error> {
 
     let seed = 0;
     let perlin = Perlin::new(seed);
-    let mut map = map::generate_map(seed, WIDTH, HEIGHT);
+    let (mut map, noise_map) = map::generate_map(seed, WIDTH, HEIGHT);
 
     let mut robots = vec![
-        Robot::new(WIDTH as usize, HEIGHT as usize, &map),
-        Robot::new(WIDTH as usize, HEIGHT as usize, &map),
-        Robot::new(WIDTH as usize, HEIGHT as usize, &map),
+        Robot::new(WIDTH as i32, HEIGHT as i32, &map),
+        Robot::new(WIDTH as i32, HEIGHT as i32, &map),
+        Robot::new(WIDTH as i32, HEIGHT as i32, &map),
     ];
 
     enable_raw_mode()?;
@@ -39,6 +42,8 @@ fn main() -> Result<(), io::Error> {
     execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
+
+    let mut base = Base::new();
 
     loop {
         let frame_start = Instant::now();
@@ -51,16 +56,13 @@ fn main() -> Result<(), io::Error> {
             }
         }
 
+        base.generate_energy();
+
+
         for robot in robots.iter_mut() {
             let noise_at_robot = perlin.get([robot.x as f64 / 10.0, robot.y as f64 / 10.0, 0.0]);
             let biome = get_biome_from_noise(noise_at_robot);
-            let resource = if noise_at_robot < -0.35 && noise_at_robot >= -0.4 {
-                Resource::Iron
-            } else if noise_at_robot < -0.3 && noise_at_robot >= -0.35 {
-                Resource::Research
-            } else {
-                Resource::None
-            };
+            let resource = get_resource_from_biome(noise_at_robot, biome);
             robot.discover_current_location(biome, resource);
             robot.update(&mut map);
         }

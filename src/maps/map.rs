@@ -107,22 +107,12 @@ pub fn get_biome_from_noise(noise: f64) -> Biome {
     }
 }
 
-pub fn get_resource_from_biome(noise: f64, biome: Biome) -> Resource {
-    match biome {
-        Biome::Desert => {
-            if noise > -0.25 && noise < -0.15 {
-                Resource::Iron
-            } else {
-                Resource::None
-            }
-        },
-        Biome::Forest => {
-            if noise > 0.15 && noise < 0.25 {
-                Resource::Research
-            } else {
-                Resource::None
-            }
-        },
-        _ => Resource::None,
+pub fn get_resource_from_biome(noise: f64, _biome: Biome) -> Resource {
+    if noise > -0.25 && noise < -0.23 {
+        Resource::Iron
+    } else if noise > 0.20 && noise < 0.23 {
+        Resource::Research
+    } else {
+        Resource::None
     }
 }

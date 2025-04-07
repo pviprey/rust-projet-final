@@ -7,13 +7,13 @@ pub struct Base {
     pub iron: i32,
     pub research_storage: i32,
     pub research: i32,
-    pub x : usize,
-    pub y : usize,
+    pub x : i32,
+    pub y : i32,
     pub lvl : i32,
 }
 
 impl Base {
-    pub fn new() -> Self {
+    pub fn new(map_width: i32, map_height: i32) -> Self {
         Self {
             energy_capacity: 500,
             energy: 250,
@@ -21,9 +21,9 @@ impl Base {
             iron: 0,
             research_storage: 0,
             research: 0,
-            x : 10,
-            y : 50,
-            lvl : 1,
+            x: map_width / 2,
+            y: map_height / 2,
+            lvl: 1,
         }
     }
 

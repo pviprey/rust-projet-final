@@ -1,7 +1,9 @@
 use pathfinding::prelude::astar;
 use crate::maps::map::{Map, Resource, Biome, TileInfo};
+use crate::base::base::Base;
 use ratatui::style::{Style, Color, Modifier};
 use ratatui::text::Span;
+use std::time::{Duration};
 
 #[derive(Clone)]
 pub struct Robot {
@@ -14,6 +16,7 @@ pub struct Robot {
     pub research_collected: i32,
     pub known_map: Map,
     pub path: Option<Vec<(i32, i32)>>,
+    pub move_cooldown: f32,
 }
 
 impl Robot {
@@ -28,23 +31,29 @@ impl Robot {
             research_collected: 0,
             known_map: full_map.clone(),
             path: None,
+            move_cooldown: 0.0,
         }
     }
 
-    pub fn collect_iron(&mut self) {
+    pub fn collect_iron(&mut self, map: &mut Map) {
         self.iron_collected += 1;
-        self.known_map.blueprint[self.x as usize][self.y as usize] = TileInfo {
-            biome: self.known_map.blueprint[self.x as usize][self.y as usize].biome,
-            resource: Resource::None,
-        };
+        self.energy -= 10;
+        
+        self.known_map.blueprint[self.x as usize][self.y as usize].biome = Biome::Plain;
+        self.known_map.blueprint[self.x as usize][self.y as usize].resource = Resource::None;
+
+        map.blueprint[self.x as usize][self.y as usize].biome = Biome::Plain;
+        map.blueprint[self.x as usize][self.y as usize].resource = Resource::None;
     }
 
-    pub fn collect_research(&mut self) {
+    pub fn collect_research(&mut self, map: &mut Map) {
         self.research_collected += 1;
-        self.known_map.blueprint[self.x as usize][self.y as usize] = TileInfo {
-            biome: self.known_map.blueprint[self.x as usize][self.y as usize].biome,
-            resource: Resource::None,
-        };
+
+        self.known_map.blueprint[self.x as usize][self.y as usize].biome = Biome::Plain;
+        self.known_map.blueprint[self.x as usize][self.y as usize].resource = Resource::None;
+
+        map.blueprint[self.x as usize][self.y as usize].biome = Biome::Plain;
+        map.blueprint[self.x as usize][self.y as usize].resource = Resource::None;
     }
 
     pub fn moving(&mut self, deplacement: Option<(Vec<(i32, i32)>, u32)>) {
@@ -59,8 +68,44 @@ impl Robot {
         }
     }
 
-    pub fn update(&mut self, map: &mut Map) {
+    pub fn update(&mut self, map: &mut Map, base: &mut Base, delta_time: Duration) {
+        self.move_cooldown -= delta_time.as_secs_f32();
+
+        if self.move_cooldown > 0.0 {
+            return;
+        }
+
+        self.move_cooldown = 1.0;
+
         if self.energy <= 0 {
+            return;
+        }
+
+        if self.x == base.x && self.y == base.y {
+            base.deposit_resources(self);
+            base.recharge_robot(self);
+
+            if self.energy < 95 {
+                return;
+            }
+        }
+
+        if let Some(tile) = self.get_tile_info(self.x as usize, self.y as usize) {
+            if let Resource::Iron = tile.resource {
+                self.collect_iron(map);
+            } else if let Resource::Research = tile.resource {
+                self.collect_research(map);
+            }
+        }
+
+        if self.energy <= 40 {
+            if let Some((mut path, cost)) = self.path_finding(base.x, base.y, map) {
+                if !path.is_empty() && path[0] == (self.x, self.y) {
+                    path.remove(0);
+                }
+                self.path = Some(path.clone());
+                self.moving(Some((path, cost)));
+            }
             return;
         }
 

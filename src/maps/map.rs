@@ -1,87 +1,118 @@
 use noise::{NoiseFn, Perlin};
-use std::thread;
-use std::time::Duration;
-use crate::robots::robot::Robot;
+use ratatui::text::Span;
+use ratatui::style::{Style, Color};
 
-// base gen map
-// "F" = Iron
-// "T" = Research
-// "#" = Montain
-// "." = Plain
+#[derive(Copy, Clone)]
+pub enum Biome {
+    Plain,
+    Desert,
+    Forest,
+    Mountain,
+    Water,
+}
 
-pub fn generate_map() {
-    let seed = 0;
-    let perlin = Perlin::new(seed);
-    for x in 0..20 {
-        for y in 0..100 {
-            let noise = perlin.get([x as f64 / 10.0, y as f64 / 10.0, 0.0]);
-            if noise < -0.4 {
-                print!("#");
-            } else if noise < -0.35 {
-                print!("F");
-            } else if noise < -0.3 {
-                print!("T");
-            } else {
-                print!(".");
+#[derive(Copy, Clone)]
+pub enum Resource {
+    None,
+    Iron,
+    Research,
+}
+
+#[derive(Clone)]
+pub struct TileInfo {
+    pub biome: Biome,
+    pub resource: Resource,
+}
+
+#[derive(Clone)]
+pub struct Map {
+    pub seed: u32,
+    pub width: i32,
+    pub height: i32,
+    pub blueprint: Vec<Vec<TileInfo>>,
+}
+
+impl Map {
+    pub fn render(&self) -> Vec<Vec<Span>> {
+        let width_usize = self.width as usize;
+        let height_usize = self.height as usize;
+        let mut grid = vec![vec![Span::raw(" "); width_usize]; height_usize];
+    
+        for y in 0..height_usize {
+            for x in 0..width_usize {
+                let tile = &self.blueprint[x][y];
+                let span = match (tile.resource, tile.biome) {
+                    (Resource::Iron, _) => {
+                        Span::styled("F", Style::default().fg(Color::Yellow))
+                    },
+                    (Resource::Research, _) => {
+                        Span::styled("T", Style::default().fg(Color::Cyan))
+                    },
+                    (_, Biome::Mountain) => {
+                        Span::styled("#", Style::default().fg(Color::DarkGray))
+                    },
+                    _ => Span::raw("."),
+                };
+                grid[y][x] = span;
             }
         }
-        println!();
+    
+        grid
     }
 }
 
-pub fn generate_map_with_robot() {
-    let seed = 0;
+pub fn generate_map(seed: u32, width: i32, height: i32) -> (Map, Vec<Vec<f64>>) {
     let perlin = Perlin::new(seed);
-    let map_width = 20;
-    let map_height = 100;
-    let mut robot = Robot::new(map_width, map_height);
-    
-    let mut iron_collected = vec![vec![false; map_height]; map_width];
-    let mut research_collected = vec![vec![false; map_height]; map_width];
-    
-    loop {
-        print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
-        
-        let noise_at_robot = perlin.get([robot.x as f64 / 10.0, robot.y as f64 / 10.0, 0.0]);
-        if noise_at_robot < -0.1 && noise_at_robot >= -0.3 && !iron_collected[robot.x][robot.y] {
-            robot.collect_iron();
-            iron_collected[robot.x][robot.y] = true;
-        } else if noise_at_robot < -0.3 && !research_collected[robot.x][robot.y] {
-            robot.collect_research();
+    let width_usize = width as usize;
+    let height_usize = height as usize;
+    let mut blueprint: Vec<Vec<TileInfo>> = vec![
+        vec![TileInfo { biome: Biome::Plain, resource: Resource::None }; height_usize];
+        width_usize
+    ];
+    let mut noise_map: Vec<Vec<f64>> = vec![vec![0.0; height_usize]; width_usize];
+
+    for x in 0..width_usize {
+        for y in 0..height_usize {
+            let nx = x as f64 / width as f64;
+            let ny = y as f64 / height as f64;
+            let noise = perlin.get([nx * 10.0, ny * 10.0, 0.0]);
+            noise_map[x][y] = noise;
+            let biome = get_biome_from_noise(noise);
+            let resource = get_resource_from_biome(noise, biome);
+            blueprint[x][y] = TileInfo { biome, resource };
         }
-        
-        // status
-        println!("Iron Collected: {}", robot.iron_collected);
-        println!("Research Collected: {}", robot.research_collected);
-        println!("Energy: {}", robot.energy);
-        println!();
-        
-        // map
-        for x in 0..map_width {
-            for y in 0..map_height {
-                if robot.x == x && robot.y == y {
-                    print!("R");
-                } else {
-                    let noise = perlin.get([x as f64 / 10.0, y as f64 / 10.0, 0.0]);
-                    if noise < -0.4 {
-                        print!("#");
-                    } else if noise < -0.35 {
-                        if !iron_collected[x][y] {
-                            print!("F");
-                        } else {
-                            print!(".");
-                        }
-                    } else if noise < -0.3 {
-                        print!("T");
-                    } else {
-                        print!(".");
-                    }
-                }
-            }
-            println!();
-        }
-        
-        robot.move_random();
-        thread::sleep(Duration::from_millis(200));
+    }
+
+    let map = Map {
+        seed,
+        width,
+        height,
+        blueprint,
+    };
+
+    (map, noise_map)
+}
+
+pub fn get_biome_from_noise(noise: f64) -> Biome {
+    if noise < -0.3 {
+        Biome::Water
+    } else if noise < -0.1 {
+        Biome::Desert
+    } else if noise < 0.1 {
+        Biome::Plain
+    } else if noise < 0.3 {
+        Biome::Forest
+    } else {
+        Biome::Mountain
+    }
+}
+
+pub fn get_resource_from_biome(noise: f64, _biome: Biome) -> Resource {
+    if noise > -0.25 && noise < -0.23 {
+        Resource::Iron
+    } else if noise > 0.20 && noise < 0.23 {
+        Resource::Research
+    } else {
+        Resource::None
     }
 }

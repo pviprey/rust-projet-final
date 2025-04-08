@@ -18,7 +18,7 @@ impl Base {
         Self {
             energy_capacity: 500,
             energy: 250,
-            iron_storage: 0,
+            iron_storage: 100,
             iron: 0,
             research_storage: 0,
             research: 0,
@@ -30,8 +30,8 @@ impl Base {
 
     pub fn recharge_robot(&mut self, robot: &mut Robot) {
         if self.energy > 0 {
-            robot.energy += 1;
-            self.energy -= 1;
+            robot.energy += 5;
+            self.energy -= 5;
         }
     }
 
@@ -42,6 +42,15 @@ impl Base {
     }
 
     pub fn deposit_resources(&mut self, robot: &mut Robot) {
+        if robot.iron_collected > 0 {
+            self.iron = robot.iron_collected;
+            robot.iron_collected = 0;
+        }
+        if robot.research_collected > 0 {
+            self.research = robot.research_collected;
+            robot.research_collected = 0;
+        }
+        self.energy -= 10;
     }
 
     pub fn share_map(&self, robot: &mut Robot) {

@@ -84,6 +84,7 @@ fn main() -> Result<(), io::Error> {
 
             robot.discover_current_location(biome, resource);
             robot.update(&mut map, &mut base, delta_time);
+            robot.class = Some("scientist".to_string()); // scientist, miner
         }
 
         let mut grid = map.render();
@@ -103,16 +104,29 @@ fn main() -> Result<(), io::Error> {
         );
 
         terminal.draw(|f| {
-            let layout = Layout::default()
+            let chunks = Layout::default()
                 .direction(Direction::Vertical)
                 .constraints([Constraint::Percentage(80), Constraint::Percentage(20)].as_ref())
                 .split(f.size());
             let map_widget = Paragraph::new(lines)
                 .block(Block::default().borders(Borders::ALL).title("Map"));
-            f.render_widget(map_widget, layout[0]);
-            let info_widget = Paragraph::new(robot_info)
+            f.render_widget(map_widget, chunks[0]);
+        
+            let info_chunks = Layout::default()
+                .direction(Direction::Horizontal)
+                .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
+                .split(chunks[1]);
+            let robot_info_widget = Paragraph::new(robot_info)
                 .block(Block::default().borders(Borders::ALL).title("Robot Info"));
-            f.render_widget(info_widget, layout[1]);
+            f.render_widget(robot_info_widget, info_chunks[0]);
+        
+            let base_info = format!(
+                "Base Info:\nPosition: ({}, {})\nEnergy: {} / {}\nIron: {}\nResearch: {}",
+                base.x, base.y, base.energy, base.energy_capacity, base.iron, base.research
+            );
+            let base_info_widget = Paragraph::new(base_info)
+                .block(Block::default().borders(Borders::ALL).title("Base Info"));
+            f.render_widget(base_info_widget, info_chunks[1]);
         })?;
 
         let elapsed = frame_start.elapsed();

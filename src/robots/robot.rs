@@ -17,6 +17,8 @@ pub struct Robot {
     pub known_map: Map,
     pub path: Option<Vec<(i32, i32)>>,
     pub move_cooldown: f32,
+    pub modules: Option<String>,
+    pub modified: bool,
 }
 
 impl Robot {
@@ -32,6 +34,8 @@ impl Robot {
             known_map: full_map.clone(),
             path: None,
             move_cooldown: 0.0,
+            modules: None,
+            modified: false,
         }
     }
 
@@ -59,10 +63,18 @@ impl Robot {
     pub fn moving(&mut self, deplacement: Option<(Vec<(i32, i32)>, u32)>) {
         if let Some((mut path, _)) = deplacement {
             if !path.is_empty() {
-                let (next_x, next_y) = path.remove(0);
-                self.x = next_x;
-                self.y = next_y;
-                self.energy -= 1;
+                if self.modules.as_deref() == Some("wheels") && path.len() >= 2 {
+                    let (_bonus_x, _bonus_y) = path.remove(0);
+                    let (next_x, next_y) = path.remove(0);
+                    self.x = next_x;
+                    self.y = next_y;
+                    self.energy -= 2;
+                } else {
+                    let (next_x, next_y) = path.remove(0);
+                    self.x = next_x;
+                    self.y = next_y;
+                    self.energy -= 1;
+                }
                 self.path = Some(path);
             }
         }
@@ -85,7 +97,12 @@ impl Robot {
             base.deposit_resources(self);
             base.recharge_robot(self);
 
+            if !self.modified {
+                base.modify_robot_equipment(self);
+            }
+
             if self.energy < 95 {
+                self.modified = false;
                 return;
             }
         }
@@ -139,16 +156,7 @@ impl Robot {
     }
 
     pub fn discover_current_location(&mut self, biome: Biome, resource: Resource) {
-        for dx in -2..=2 {
-            for dy in -2..=2 {
-                let new_x = (self.x as isize + dx)
-                    .clamp(0, self.map_width as isize - 1) as usize;
-                let new_y = (self.y as isize + dy)
-                    .clamp(0, self.map_height as isize - 1) as usize;
-                self.known_map.blueprint[new_x][new_y] = TileInfo { biome, resource };
-            }
-        }
-        self.known_map.blueprint[self.x as usize][self.y as usize] = TileInfo { biome, resource };
+        self.known_map.discover_area(self.x as usize, self.y as usize, 2, biome, resource);
     }
 
     pub fn get_tile_info(&self, x: usize, y: usize) -> Option<&TileInfo> {
@@ -206,8 +214,16 @@ impl Robot {
                     if next.0 < 0 || next.1 < 0 || next.0 >= map.width || next.1 >= map.height {
                         continue;
                     }
-                    if let Biome::Mountain = map.blueprint[next.0 as usize][next.1 as usize].biome {
-                        continue;
+                    let tile = &map.blueprint[next.0 as usize][next.1 as usize];
+                    if let Biome::Mountain = tile.biome {
+                        if self.modules.as_deref() != Some("tracks") {
+                            continue;
+                        }
+                    }
+                    if let Biome::Water = tile.biome {
+                        if self.modules.as_deref() != Some("buoy") {
+                            continue;
+                        }
                     }
                     neighbors.push((next, 1));
                 }

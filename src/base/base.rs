@@ -1,4 +1,5 @@
 use crate::robots::robot::Robot;
+use crate::maps::map::{Map, Resource, Biome};
 
 pub struct Base {
     pub energy_capacity: i32,
@@ -47,6 +48,42 @@ impl Base {
     }
 
     pub fn modify_robot_equipment(&mut self, robot: &mut Robot) {
+        let radius = 10;
+        let blueprint = &robot.known_map.blueprint;
+        let map_width = blueprint.len();
+        if map_width == 0 {
+            return;
+        }
+        let map_height = blueprint[0].len();
+
+        let base_x = self.x as usize;
+        let base_y = self.y as usize;
+        let start_x = if base_x >= radius { base_x - radius } else { 0 };
+        let start_y = if base_y >= radius { base_y - radius } else { 0 };
+        let end_x = usize::min(base_x + radius, map_width - 1);
+        let end_y = usize::min(base_y + radius, map_height - 1);
+
+        let mut water_count = 0;
+        let mut mountain_count = 0;
+        let mut others_count = 0;
+
+        for i in start_x..=end_x {
+            for j in start_y..=end_y {
+                match blueprint[i][j].biome {
+                    Biome::Water => water_count += 1,
+                    Biome::Mountain => mountain_count += 1,
+                    _ => others_count += 1,
+                }
+            }
+        }
+
+        if water_count >= mountain_count && water_count >= others_count {
+            robot.modules = Some("buoy".to_string());
+        } else if mountain_count >= water_count && mountain_count >= others_count {
+            robot.modules = Some("tracks".to_string());
+        } else {
+            robot.modules = Some("wheels".to_string());
+        }
     }
 
     pub fn upgrade_base(&mut self) {

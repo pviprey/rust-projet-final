@@ -59,6 +59,20 @@ impl Map {
     
         grid
     }
+
+    pub fn discover_area(&mut self, x: usize, y: usize, radius: usize, biome: Biome, resource: Resource) {
+        let width = self.blueprint.len();
+        let height = if width > 0 { self.blueprint[0].len() } else { 0 };
+        let start_x = if x >= radius { x - radius } else { 0 };
+        let start_y = if y >= radius { y - radius } else { 0 };
+        let end_x = usize::min(x + radius, width - 1);
+        let end_y = usize::min(y + radius, height - 1);
+        for i in start_x..=end_x {
+            for j in start_y..=end_y {
+                self.blueprint[i][j] = TileInfo { biome, resource };
+            }
+        }
+    }
 }
 
 pub fn generate_map(seed: u32, width: i32, height: i32) -> (Map, Vec<Vec<f64>>) {

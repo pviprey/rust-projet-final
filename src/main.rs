@@ -34,7 +34,11 @@ fn main() -> Result<(), io::Error> {
     let (mut map, noise_map) = map::generate_map(seed, WIDTH, HEIGHT);
 
     let mut robots = vec![
-        Robot::new(WIDTH as i32, HEIGHT as i32, &map),
+        {
+            let mut r = Robot::new(WIDTH as i32, HEIGHT as i32, &map);
+            r.modules = Some(String::from("none")); // wheels, buoy, tracks
+            r
+        }
     ];
 
     enable_raw_mode()?;

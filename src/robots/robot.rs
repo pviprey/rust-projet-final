@@ -118,6 +118,21 @@ impl Robot {
             }
         }
 
+        if let Some((path_to_base, base_cost)) = self.path_finding(base.x, base.y, map) {
+            if self.energy < (base_cost as i32 + 5) {
+                if !path_to_base.is_empty() && path_to_base[0] == (self.x, self.y) {
+                    let mut path = path_to_base.clone();
+                    path.remove(0);
+                    self.path = Some(path.clone());
+                    self.moving(Some((path, base_cost)));
+                } else {
+                    self.path = Some(path_to_base.clone());
+                    self.moving(Some((path_to_base, base_cost)));
+                }
+                return;
+            }
+        }
+
         if let Some(tile) = self.get_tile_info(self.x as usize, self.y as usize) {
             if let Resource::Iron = tile.resource {
                 self.collect_iron(map);
@@ -131,18 +146,6 @@ impl Robot {
             _ => Resource::Iron,
 
         };
-
-
-        if self.energy <= 40 {
-            if let Some((mut path, cost)) = self.path_finding(base.x, base.y, map) {
-                if !path.is_empty() && path[0] == (self.x, self.y) {
-                    path.remove(0);
-                }
-                self.path = Some(path.clone());
-                self.moving(Some((path, cost)));
-            }
-            return;
-        }
 
         if let Some(mut stored_path) = self.path.take() {
             if !stored_path.is_empty() {

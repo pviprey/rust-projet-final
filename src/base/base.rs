@@ -20,7 +20,7 @@ impl Base {
             energy: 250,
             iron_storage: 100,
             iron: 0,
-            research_storage: 0,
+            research_storage: 20,
             research: 0,
             x: map_width / 2,
             y: map_height / 2,
@@ -96,5 +96,15 @@ impl Base {
     }
 
     pub fn upgrade_base(&mut self) {
+        if self.energy >= 100 && self.iron >= 10 {
+            self.energy -= 100;
+            self.iron -= 10;
+            self.lvl += 1;
+            self.energy_capacity += 250;
+            self.iron_storage += 50;
+            self.research_storage += 20;
+        } else {
+            println!("Not enough resources to upgrade the base.");
+        }
     }
 } 

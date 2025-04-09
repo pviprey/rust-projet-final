@@ -60,8 +60,12 @@ fn main() -> Result<(), io::Error> {
 
         if event::poll(Duration::from_millis(1))? {
             if let Event::Key(key) = event::read()? {
-                if key.code == KeyCode::Char('q') {
-                    break;
+                match key.code {
+                    KeyCode::Char('q') => break,
+                    KeyCode::Char('u') | KeyCode::Char('u') => {
+                        base.upgrade_base();
+                    },
+                    _ => {}
                 }
             }
         }
@@ -121,8 +125,8 @@ fn main() -> Result<(), io::Error> {
             f.render_widget(robot_info_widget, info_chunks[0]);
         
             let base_info = format!(
-                "Base Info:\nPosition: ({}, {})\nEnergy: {} / {}\nIron: {}\nResearch: {}",
-                base.x, base.y, base.energy, base.energy_capacity, base.iron, base.research
+                "Base Info:\nPosition: ({}, {})\nEnergy: {} / {}\nIron: {}\nResearch: {}\nBase lvl: {}\nAppuyez sur 'u' pour améliorer la base.",
+                base.x, base.y, base.energy, base.energy_capacity, base.iron, base.research, base.lvl
             );
             let base_info_widget = Paragraph::new(base_info)
                 .block(Block::default().borders(Borders::ALL).title("Base Info"));

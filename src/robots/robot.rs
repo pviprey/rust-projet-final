@@ -7,6 +7,7 @@ use std::time::{Duration};
 
 #[derive(Clone)]
 pub struct Robot {
+    pub id: i32,
     pub x: i32,
     pub y: i32,
     map_width: i32,
@@ -19,11 +20,13 @@ pub struct Robot {
     pub move_cooldown: f32,
     pub modules: Option<String>,
     pub modified: bool,
+    pub class: Option<String>,
 }
 
 impl Robot {
     pub fn new(map_width: i32, map_height: i32, full_map: &Map) -> Self {
         Self {
+            id: 0,
             x: map_width / 2,
             y: map_height / 2,
             map_width,
@@ -36,28 +39,18 @@ impl Robot {
             move_cooldown: 0.0,
             modules: None,
             modified: false,
+            class: None,
         }
     }
 
-    pub fn collect_iron(&mut self, map: &mut Map) {
-        self.iron_collected += 1;
-        self.energy -= 10;
-        
-        self.known_map.blueprint[self.x as usize][self.y as usize].biome = Biome::Plain;
-        self.known_map.blueprint[self.x as usize][self.y as usize].resource = Resource::None;
-
-        map.blueprint[self.x as usize][self.y as usize].biome = Biome::Plain;
-        map.blueprint[self.x as usize][self.y as usize].resource = Resource::None;
+    pub fn collect_iron(&mut self, map: &mut Map) {           
+            self.known_map.blueprint[self.x as usize][self.y as usize].resource = Resource::None;
+            map.blueprint[self.x as usize][self.y as usize].resource = Resource::None;
     }
 
     pub fn collect_research(&mut self, map: &mut Map) {
-        self.research_collected += 1;
-
-        self.known_map.blueprint[self.x as usize][self.y as usize].biome = Biome::Plain;
-        self.known_map.blueprint[self.x as usize][self.y as usize].resource = Resource::None;
-
-        map.blueprint[self.x as usize][self.y as usize].biome = Biome::Plain;
-        map.blueprint[self.x as usize][self.y as usize].resource = Resource::None;
+            self.known_map.blueprint[self.x as usize][self.y as usize].resource = Resource::None;
+            map.blueprint[self.x as usize][self.y as usize].resource = Resource::None;
     }
 
     pub fn moving(&mut self, deplacement: Option<(Vec<(i32, i32)>, u32)>) {
@@ -68,7 +61,7 @@ impl Robot {
                     let (next_x, next_y) = path.remove(0);
                     self.x = next_x;
                     self.y = next_y;
-                    self.energy -= 2;
+                    self.energy -= 1;
                 } else {
                     let (next_x, next_y) = path.remove(0);
                     self.x = next_x;
@@ -107,24 +100,26 @@ impl Robot {
             }
         }
 
-        if let Some(tile) = self.get_tile_info(self.x as usize, self.y as usize) {
-            if let Resource::Iron = tile.resource {
-                self.collect_iron(map);
-            } else if let Resource::Research = tile.resource {
-                self.collect_research(map);
+        if let Some((path_to_base, base_cost)) = self.path_finding(base.x, base.y, map) {
+            if self.energy < (base_cost as i32 + 5) {
+                if !path_to_base.is_empty() && path_to_base[0] == (self.x, self.y) {
+                    let mut path = path_to_base.clone();
+                    path.remove(0);
+                    self.path = Some(path.clone());
+                    self.moving(Some((path, base_cost)));
+                } else {
+                    self.path = Some(path_to_base.clone());
+                    self.moving(Some((path_to_base, base_cost)));
+                }
+                return;
             }
         }
 
-        if self.energy <= 40 {
-            if let Some((mut path, cost)) = self.path_finding(base.x, base.y, map) {
-                if !path.is_empty() && path[0] == (self.x, self.y) {
-                    path.remove(0);
-                }
-                self.path = Some(path.clone());
-                self.moving(Some((path, cost)));
-            }
-            return;
-        }
+        let target_resource = match self.class.as_deref() {
+            Some("scientist") => Resource::Research,
+            _ => Resource::Iron,
+
+        };
 
         if let Some(mut stored_path) = self.path.take() {
             if !stored_path.is_empty() {
@@ -136,7 +131,7 @@ impl Robot {
         let mut closest: Option<(Vec<(i32, i32)>, u32)> = None;
         for (ix, row) in map.blueprint.iter().enumerate() {
             for (iy, tile) in row.iter().enumerate() {
-                if let Resource::Iron = tile.resource {
+                if tile.resource == target_resource {
                     if let Some(p) = self.path_finding(ix as i32, iy as i32, map) {
                         if closest.is_none() || p.1 < closest.as_ref().unwrap().1 {
                             closest = Some(p);
@@ -157,14 +152,6 @@ impl Robot {
 
     pub fn discover_current_location(&mut self, biome: Biome, resource: Resource) {
         self.known_map.discover_area(self.x as usize, self.y as usize, 2, biome, resource);
-    }
-
-    pub fn get_tile_info(&self, x: usize, y: usize) -> Option<&TileInfo> {
-        if x < self.map_width as usize && y < self.map_height as usize {
-            Some(&self.known_map.blueprint[x][y])
-        } else {
-            None
-        }
     }
 
     pub fn move_random(&mut self, map: &Map) {

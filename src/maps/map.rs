@@ -11,7 +11,7 @@ pub enum Biome {
     Water,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq)]
 pub enum Resource {
     None,
     Iron,

@@ -1,5 +1,4 @@
-# Rust Robot Resource Collection Simulation
-
+# RRRCS
 Ce projet est une simulation de robots collectant des ressources dans un environnement généré procéduralement. Les robots naviguent de manière autonome sur une carte, collectent des ressources et les ramènent à une base centrale.
 
 ## Fonctionnalités
@@ -23,13 +22,13 @@ Ce projet est une simulation de robots collectant des ressources dans un environ
 ### Prérequis
 
 - Rust (version stable récente)
-- Un terminal compatible avec les séquences d'échappement ANSI
+- Un terminal
 
 ### Étapes d'installation
 
 1. Clonez le dépôt:
    ```bash
-   git clone https://github.com/votre-username/rust-robot-simulation.git
+   git clone [https://github.com/votre-username/rust-robot-simulation](https://github.com/pviprey/rust-projet-final).git
    cd rust-robot-simulation
    ```
 

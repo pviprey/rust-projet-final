@@ -7,6 +7,7 @@ use std::time::{Duration};
 
 #[derive(Clone)]
 pub struct Robot {
+    pub id: i32,
     pub x: i32,
     pub y: i32,
     map_width: i32,
@@ -25,6 +26,7 @@ pub struct Robot {
 impl Robot {
     pub fn new(map_width: i32, map_height: i32, full_map: &Map) -> Self {
         Self {
+            id: 0,
             x: map_width / 2,
             y: map_height / 2,
             map_width,

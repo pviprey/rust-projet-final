@@ -43,14 +43,13 @@ impl Base {
 
     pub fn deposit_resources(&mut self, robot: &mut Robot) {
         if robot.iron_collected > 0 {
-            self.iron = robot.iron_collected;
+            self.iron += robot.iron_collected;
             robot.iron_collected = 0;
         }
         if robot.research_collected > 0 {
-            self.research = robot.research_collected;
+            self.research += robot.research_collected;
             robot.research_collected = 0;
         }
-        self.energy -= 10;
     }
 
     pub fn share_map(&self, robot: &mut Robot) {

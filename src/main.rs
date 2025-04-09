@@ -89,6 +89,18 @@ fn main() -> Result<(), io::Error> {
             robot.discover_current_location(biome, resource);
             robot.update(&mut map, &mut base, delta_time);
             robot.class = Some("scientist".to_string()); // scientist, miner
+            if let Some(tile) = map.blueprint
+                .get(robot.x as usize)
+                .and_then(|row| row.get(robot.y as usize))
+            {
+                if tile.resource == Resource::Iron {
+                    robot.iron_collected += 1;
+                    robot.collect_iron(&mut map);
+                } else if tile.resource == Resource::Research {
+                    robot.research_collected += 1;
+                    robot.collect_research(&mut map);
+                }
+            }
         }
 
         let mut grid = map.render();

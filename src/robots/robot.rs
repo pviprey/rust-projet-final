@@ -41,34 +41,14 @@ impl Robot {
         }
     }
 
-    pub fn collect_iron(&mut self, map: &mut Map) {
-        if self.class.as_deref() == Some("miner") {
-            self.iron_collected += 1;
-            self.energy -= 10;
-            
-            self.known_map.blueprint[self.x as usize][self.y as usize].biome = Biome::Plain;
+    pub fn collect_iron(&mut self, map: &mut Map) {           
             self.known_map.blueprint[self.x as usize][self.y as usize].resource = Resource::None;
-    
-            map.blueprint[self.x as usize][self.y as usize].biome = Biome::Plain;
             map.blueprint[self.x as usize][self.y as usize].resource = Resource::None;
-        } else {
-            return;
-        }
     }
 
     pub fn collect_research(&mut self, map: &mut Map) {
-        if self.class.as_deref() == Some("scientist") {
-            self.research_collected += 1;
-            self.energy -= 10;
-            
-            self.known_map.blueprint[self.x as usize][self.y as usize].biome = Biome::Plain;
             self.known_map.blueprint[self.x as usize][self.y as usize].resource = Resource::None;
-    
-            map.blueprint[self.x as usize][self.y as usize].biome = Biome::Plain;
             map.blueprint[self.x as usize][self.y as usize].resource = Resource::None;
-        } else {
-            return;
-        }
     }
 
     pub fn moving(&mut self, deplacement: Option<(Vec<(i32, i32)>, u32)>) {
@@ -133,14 +113,6 @@ impl Robot {
             }
         }
 
-        if let Some(tile) = self.get_tile_info(self.x as usize, self.y as usize) {
-            if let Resource::Iron = tile.resource {
-                self.collect_iron(map);
-            } else if let Resource::Research = tile.resource {
-                self.collect_research(map);
-            }
-        }
-
         let target_resource = match self.class.as_deref() {
             Some("scientist") => Resource::Research,
             _ => Resource::Iron,
@@ -178,14 +150,6 @@ impl Robot {
 
     pub fn discover_current_location(&mut self, biome: Biome, resource: Resource) {
         self.known_map.discover_area(self.x as usize, self.y as usize, 2, biome, resource);
-    }
-
-    pub fn get_tile_info(&self, x: usize, y: usize) -> Option<&TileInfo> {
-        if x < self.map_width as usize && y < self.map_height as usize {
-            Some(&self.known_map.blueprint[x][y])
-        } else {
-            None
-        }
     }
 
     pub fn move_random(&mut self, map: &Map) {
